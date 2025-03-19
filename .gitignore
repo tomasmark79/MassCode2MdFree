@@ -1,0 +1,4 @@
+/build/
+/tst/
+CMakeUserPresets.json
+Solution.log
