@@ -1,9 +1,5 @@
 # MassCode2MdFree
 
-[![Linux](https://github.com/tomasmark79/MassCode2MdFree/actions/workflows/linux.yml/badge.svg)](https://github.com/tomasmark79/MassCode2MdFree/actions/workflows/linux.yml)
-[![MacOS](https://github.com/tomasmark79/MassCode2MdFree/actions/workflows/macos.yml/badge.svg)](https://github.com/tomasmark79/MassCode2MdFree/actions/workflows/macos.yml)
-[![Windows](https://github.com/tomasmark79/MassCode2MdFree/actions/workflows/windows.yml/badge.svg)](https://github.com/tomasmark79/MassCode2MdFree/actions/workflows/windows.yml)  
-
 MassCode2MdFree is a lightweight tool designed to convert code snippets stored in JSON format into organized Markdown files. The tool reads a MassCode2MdFree database JSON file containing code snippets and automatically arranges them into directories based on the provided structure in the JSON file.
 
 Usage:
