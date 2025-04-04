@@ -8,6 +8,15 @@ Usage:
 ./MassCode2MdFree <db.json> <output_folder>
 ```
 
+# Reusability in another projects
+
+This project is a library accompanied by an executable file. You can use the library in your own project.
+
+[CMake compatible (CPM.cmake, FetchContent, or add_subdirectory).](https://github.com/tomasmark79/DotNameCppFree?tab=readme-ov-file#reusability-in-another-projects)
+
+## Standalone Example
+## Standalone Usage
+## References 
 ---
 
 ![alt text](assets/logo.png)

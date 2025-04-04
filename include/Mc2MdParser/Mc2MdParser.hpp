@@ -1,30 +1,37 @@
-#ifndef __MC2MDPARSER_H__
-#define __MC2MDPARSER_H__
-
 // MIT License
 // Copyright (c) 2024-2025 Tomáš Mark
 
+#ifndef __MC2MDPARSER_HPP
+#define __MC2MDPARSER_HPP
+
+#include <Mc2MdParser/version.h>
+#include <filesystem>
 #include <string>
 
 // Public API
 
-namespace library {
+namespace dotname {
 
-class Mc2MdParser {
-public:
-  Mc2MdParser(const std::string &assetsPath, std::string in, std::string out);
-  ~Mc2MdParser();
+  class Mc2MdParser {
 
-  // alternatively, you can use a getter function
-  const std::string getAssetsPath() const { return m_assetsPath; }
+    const std::string libName_ = std::string ("Mc2MdParser v.") + MC2MDPARSER_VERSION;
+    std::filesystem::path assetsPath_;
+    std::string input_;
+    std::string output_;
 
-private:
-  std::string m_assetsPath;
-  std::string m_input;
-  std::string m_output;
-  
-};
+  public:
+    Mc2MdParser ();
+    Mc2MdParser (const std::filesystem::path& assetsPath, std::string in, std::string out);
+    ~Mc2MdParser ();
 
-} // namespace library
+    const std::filesystem::path getAssetsPath () const {
+      return assetsPath_;
+    }
+    void setAssetsPath (const std::filesystem::path& assetsPath) {
+      assetsPath_ = assetsPath;
+    }
+  };
 
-#endif // __MC2MDPARSER_H__
+} // namespace dotname
+
+#endif // __MC2MDPARSER_HPP
