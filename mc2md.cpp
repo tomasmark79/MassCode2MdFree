@@ -12,6 +12,7 @@
 //   ./mc2md -i db.json -o output_dir
 //   ./mc2md --help
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -30,6 +31,89 @@ namespace fs = std::filesystem;
 #define LOG_I(msg) std::cout  << "[INFO]  " << msg << "\n"
 #define LOG_W(msg) std::cout  << "[WARN]  " << msg << "\n"
 #define LOG_E(msg) std::cerr  << "[ERROR] " << msg << "\n"
+
+// ---------------------------------------------------------------------------
+// Transliterate common Czech/Slovak (and wider Latin-extended) diacritics
+// to ASCII base equivalents. Processes UTF-8 input.
+// ---------------------------------------------------------------------------
+static std::string transliterate (const std::string& s) {
+  struct Entry { unsigned char b1, b2; char rep; };
+  static const Entry table[] = {
+    // a
+    {0xC3,0xA1,'a'},{0xC3,0x81,'A'}, // á Á
+    {0xC3,0xA0,'a'},{0xC3,0x80,'A'}, // à À
+    {0xC3,0xA2,'a'},{0xC3,0x82,'A'}, // â Â
+    {0xC3,0xA4,'a'},{0xC3,0x84,'A'}, // ä Ä
+    {0xC3,0xA3,'a'},{0xC3,0x83,'A'}, // ã Ã
+    {0xC3,0xA5,'a'},{0xC3,0x85,'A'}, // å Å
+    // c
+    {0xC4,0x8D,'c'},{0xC4,0x8C,'C'}, // č Č
+    {0xC4,0x87,'c'},{0xC4,0x86,'C'}, // ć Ć
+    {0xC3,0xA7,'c'},{0xC3,0x87,'C'}, // ç Ç
+    // d
+    {0xC4,0x8F,'d'},{0xC4,0x8E,'D'}, // ď Ď
+    // e
+    {0xC3,0xA9,'e'},{0xC3,0x89,'E'}, // é É
+    {0xC3,0xA8,'e'},{0xC3,0x88,'E'}, // è È
+    {0xC3,0xAA,'e'},{0xC3,0x8A,'E'}, // ê Ê
+    {0xC3,0xAB,'e'},{0xC3,0x8B,'E'}, // ë Ë
+    {0xC4,0x9B,'e'},{0xC4,0x9A,'E'}, // ě Ě
+    // i
+    {0xC3,0xAD,'i'},{0xC3,0x8D,'I'}, // í Í
+    {0xC3,0xAC,'i'},{0xC3,0x8C,'I'}, // ì Ì
+    {0xC3,0xAE,'i'},{0xC3,0x8E,'I'}, // î Î
+    {0xC3,0xAF,'i'},{0xC3,0x8F,'I'}, // ï Ï
+    // l
+    {0xC4,0xBE,'l'},{0xC4,0xBD,'L'}, // ľ Ľ
+    {0xC4,0xBA,'l'},{0xC4,0xB9,'L'}, // ĺ Ĺ
+    {0xC5,0x82,'l'},{0xC5,0x81,'L'}, // ł Ł
+    // n
+    {0xC5,0x88,'n'},{0xC5,0x87,'N'}, // ň Ň
+    {0xC3,0xB1,'n'},{0xC3,0x91,'N'}, // ñ Ñ
+    // o
+    {0xC3,0xB3,'o'},{0xC3,0x93,'O'}, // ó Ó
+    {0xC3,0xB2,'o'},{0xC3,0x92,'O'}, // ò Ò
+    {0xC3,0xB4,'o'},{0xC3,0x94,'O'}, // ô Ô
+    {0xC3,0xB6,'o'},{0xC3,0x96,'O'}, // ö Ö
+    {0xC3,0xB5,'o'},{0xC3,0x95,'O'}, // õ Õ
+    {0xC5,0x91,'o'},{0xC5,0x90,'O'}, // ő Ő
+    // r
+    {0xC5,0x99,'r'},{0xC5,0x98,'R'}, // ř Ř
+    // s
+    {0xC5,0xA1,'s'},{0xC5,0xA0,'S'}, // š Š
+    {0xC5,0x9B,'s'},{0xC5,0x9A,'S'}, // ś Ś
+    // t
+    {0xC5,0xA5,'t'},{0xC5,0xA4,'T'}, // ť Ť
+    // u
+    {0xC3,0xBA,'u'},{0xC3,0x9A,'U'}, // ú Ú
+    {0xC3,0xB9,'u'},{0xC3,0x99,'U'}, // ù Ù
+    {0xC3,0xBB,'u'},{0xC3,0x9B,'U'}, // û Û
+    {0xC3,0xBC,'u'},{0xC3,0x9C,'U'}, // ü Ü
+    {0xC5,0xAF,'u'},{0xC5,0xAE,'U'}, // ů Ů
+    {0xC5,0xB1,'u'},{0xC5,0xB0,'U'}, // ű Ű
+    // y
+    {0xC3,0xBD,'y'},{0xC3,0x9D,'Y'}, // ý Ý
+    // z
+    {0xC5,0xBE,'z'},{0xC5,0xBD,'Z'}, // ž Ž
+    {0xC5,0xBA,'z'},{0xC5,0xB9,'Z'}, // ź Ź
+    {0xC5,0xBC,'z'},{0xC5,0xBB,'Z'}, // ż Ż
+  };
+
+  std::string result;
+  result.reserve (s.size ());
+  for (size_t i = 0; i < s.size (); ) {
+    const auto c = static_cast<unsigned char> (s[i]);
+    if ((c & 0xE0) == 0xC0 && i + 1 < s.size ()) {
+      const auto c2 = static_cast<unsigned char> (s[i + 1]);
+      char rep = '\0';
+      for (const auto& e : table)
+        if (e.b1 == c && e.b2 == c2) { rep = e.rep; break; }
+      if (rep) { result += rep; i += 2; continue; }
+    }
+    result += s[i++];
+  }
+  return result;
+}
 
 // ---------------------------------------------------------------------------
 // Core conversion logic
@@ -82,6 +166,9 @@ int convert (const std::string& inputFile, const std::string& outputDir) {
 
     LOG_I ("Folder: " << name << "  (id=" << id << ")");
 
+    // Transliterate diacritics → ASCII before sanitising
+    name = transliterate (name);
+
     // Sanitise: keep alphanumeric, '_', '-', '+'
     std::replace_if (name.begin (), name.end (),
                      [] (char c) {
@@ -130,6 +217,9 @@ int convert (const std::string& inputFile, const std::string& outputDir) {
              << "\" (folderId=" << folderId << ") — skipping");
       continue;
     }
+
+    // Transliterate diacritics → ASCII before sanitising
+    snippetName = transliterate (snippetName);
 
     // Sanitise snippet name
     std::replace_if (snippetName.begin (), snippetName.end (),
